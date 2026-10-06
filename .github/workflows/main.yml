@@ -38,6 +38,12 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" >> android/local.properties
           flutter config --no-analytics
 
+          # Accept all Android SDK licenses to prevent sdkmanager failure
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          echo "24333f8a63cbd82ea12e1d73f33a17d494f10424" > "$ANDROID_HOME/licenses/android-sdk-license" || true
+          echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license" || true
+          yes | flutter doctor --android-licenses || true
+
       - name: Install Dependencies
         run: flutter pub get
 

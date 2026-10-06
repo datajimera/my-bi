@@ -48,7 +48,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: billing-${{ matrix.flavor }}-apk
-          path: |
-            build/app/outputs/flutter-apk/app-${{ matrix.flavor }}-release.apk
-            build/app/outputs/apk/${{ matrix.flavor }}/release/app-${{ matrix.flavor }}-release.apk
-          if-no-files-found: warn
+          path: build/app/outputs/flutter-apk/app-${{ matrix.flavor }}-release.apk

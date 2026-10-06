@@ -1,11 +1,17 @@
 plugins {
     id "com.android.application"
-    id "kotlin-android"
+    id "org.jetbrains.kotlin.android"
     id "dev.flutter.flutter-gradle-plugin"
 }
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
+if (!keystorePropertiesFile.exists()) {
+    keystorePropertiesFile = file('../key.properties')
+}
+if (!keystorePropertiesFile.exists()) {
+    keystorePropertiesFile = file('key.properties')
+}
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
@@ -33,8 +39,15 @@ android {
 
     signingConfigs {
         release {
-            def kFile = keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-            if (kFile != null && kFile.exists()) {
+            def kPath = keystoreProperties['storeFile'] ?: "upload-keystore.jks"
+            def kFile = file(kPath)
+            if (!kFile.exists()) {
+                kFile = file("upload-keystore.jks")
+            }
+            if (!kFile.exists()) {
+                kFile = rootProject.file("app/upload-keystore.jks")
+            }
+            if (kFile.exists()) {
                 storeFile kFile
                 storePassword keystoreProperties['storePassword'] ?: "android"
                 keyAlias keystoreProperties['keyAlias'] ?: "upload"
@@ -65,7 +78,7 @@ android {
 
     buildTypes {
         release {
-            if (signingConfigs.release.storeFile != null) {
+            if (signingConfigs.release.storeFile != null && signingConfigs.release.storeFile.exists()) {
                 signingConfig signingConfigs.release
             } else {
                 signingConfig signingConfigs.debug

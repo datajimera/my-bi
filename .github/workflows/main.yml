@@ -1,4 +1,4 @@
-name: Build 4 Android Apps
+name: Build 3 Android Apps
 
 on:
   push:
@@ -11,19 +11,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        flavor: [counter, guard, inventory, manager]
+        flavor: [counter, manager, checking]
+    # Agar pubspec.yaml kisi folder me hai (jaise smart_billing), to neeche 3 line ka comment hatao:
+    # defaults:
+    #   run:
+    #     working-directory: smart_billing
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: zulu
           java-version: '17'
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
@@ -48,8 +49,10 @@ jobs:
           -t lib/main_${{ matrix.flavor }}.dart
           --build-number=${{ github.run_number }}
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: billing-${{ matrix.flavor }}-apk
-          path: build/app/outputs/flutter-apk/app-${{ matrix.flavor }}-release.apk
+          path: |
+            build/app/outputs/flutter-apk/app-${{ matrix.flavor }}-release.apk
+            smart_billing/build/app/outputs/flutter-apk/app-${{ matrix.flavor }}-release.apk
+          if-no-files-found: warn

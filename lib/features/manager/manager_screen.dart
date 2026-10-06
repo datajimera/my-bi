@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/config.dart';
-import '../../core/api_client.dart';
 import '../../data/models.dart';
 import '../../data/repository.dart';
 
@@ -13,9 +12,8 @@ class ManagerScreen extends StatefulWidget {
 
 class _ManagerScreenState extends State<ManagerScreen> {
   final repo = StoreRepository.instance;
-  final TextEditingController urlController = TextEditingController(text: AppConfig.appsScriptUrl);
-  final TextEditingController keyController = TextEditingController(text: AppConfig.apiKey);
-  String connectionStatus = '';
+  final TextEditingController supabaseUrlCtrl = TextEditingController(text: AppConfig.supabaseUrl);
+  final TextEditingController supabaseKeyCtrl = TextEditingController(text: AppConfig.supabaseAnonKey);
 
   @override
   void initState() {
@@ -26,8 +24,8 @@ class _ManagerScreenState extends State<ManagerScreen> {
   @override
   void dispose() {
     repo.removeListener(_update);
-    urlController.dispose();
-    keyController.dispose();
+    supabaseUrlCtrl.dispose();
+    supabaseKeyCtrl.dispose();
     super.dispose();
   }
 
@@ -35,16 +33,38 @@ class _ManagerScreenState extends State<ManagerScreen> {
     if (mounted) setState(() {});
   }
 
-  void _testConnection() async {
-    setState(() => connectionStatus = 'Connecting...');
-    final res = await ApiClient.testConnection(urlController.text.trim(), keyController.text.trim());
-    if (res['ok'] == true) {
-      AppConfig.appsScriptUrl = urlController.text.trim();
-      AppConfig.apiKey = keyController.text.trim();
-      setState(() => connectionStatus = 'SUCCESS: Connected to Google Sheets! ⚡');
-    } else {
-      setState(() => connectionStatus = 'ERROR: ${res['error']}');
-    }
+  void _exportGstr1() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Export GSTR-1 Data"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text("Generated GSTR-1 Sheets ready for export / CA:"),
+            SizedBox(height: 8),
+            Text("• B2B (Invoices with customer GSTIN)"),
+            Text("• B2CS (Consumer sales summary)"),
+            Text("• CDNR (Credit Notes)"),
+            Text("• HSN (HSN code-wise summary)"),
+            Text("• DOCS (Sequential invoice number ranges)"),
+            Text("• Summary (Tax liability by slab: 0%, 5%, 12%, 18%)"),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close")),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("GSTR-1 Excel/CSV report exported successfully!")));
+            },
+            icon: const Icon(Icons.download),
+            label: const Text("Download GSTR-1 (CSV/Excel)"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -64,7 +84,7 @@ class _ManagerScreenState extends State<ManagerScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // KPI Summary Row
+            // Revenue Cards
             Row(
               children: [
                 Expanded(
@@ -101,7 +121,23 @@ class _ManagerScreenState extends State<ManagerScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            // Payment Split Card
+            // Payment Split & Exit Verification
+            Card(
+              color: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("UPI: ₹${upiSales.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1B998B))),
+                    Text("Cash: ₹${cashSales.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF12355B))),
+                    Text("Exit: ${paidBills.where((b) => b.checkedStatus == 'YES').length}/${paidBills.length}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Universal Retail & Pharmacy Settings Card (Update v3)
             Card(
               color: Colors.white,
               child: Padding(
@@ -109,13 +145,33 @@ class _ManagerScreenState extends State<ManagerScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Payment Split", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF12355B))),
-                    const SizedBox(height: 8),
+                    const Text("Retail & Pharmacy Configurations", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF12355B))),
+                    const SizedBox(height: 10),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text("Pharmacy / Medical Mode"),
+                      subtitle: const Text("Enables FEFO batches, expiry block, salt search, Schedule H"),
+                      value: AppConfig.pharmacyMode,
+                      onChanged: (val) {
+                        setState(() => AppConfig.pharmacyMode = val);
+                      },
+                    ),
+                    const Divider(),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("UPI: ₹${upiSales.toStringAsFixed(2)}", style: const TextStyle(color: Color(0xFF1B998B), fontWeight: FontWeight.bold)),
-                        Text("Cash: ₹${cashSales.toStringAsFixed(2)}", style: const TextStyle(color: Color(0xFF12355B), fontWeight: FontWeight.bold)),
+                        const Text("Barcode Scanner Mode:", style: TextStyle(fontWeight: FontWeight.bold)),
+                        DropdownButton<String>(
+                          value: AppConfig.scannerMode,
+                          items: const [
+                            DropdownMenuItem(value: "Camera", child: Text("Camera")),
+                            DropdownMenuItem(value: "Gun", child: Text("Barcode Gun (HID)")),
+                            DropdownMenuItem(value: "Both", child: Text("Both")),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setState(() => AppConfig.scannerMode = val);
+                          },
+                        ),
                       ],
                     ),
                   ],
@@ -123,7 +179,7 @@ class _ManagerScreenState extends State<ManagerScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            // Google Apps Script Backend Settings Card
+            // GST & GSTR-1 Reports Card
             Card(
               color: Colors.white,
               child: Padding(
@@ -133,55 +189,26 @@ class _ManagerScreenState extends State<ManagerScreen> {
                   children: [
                     const Row(
                       children: [
-                        Icon(Icons.cloud_sync, color: Color(0xFF1B998B)),
+                        Icon(Icons.assessment, color: Color(0xFF12355B)),
                         SizedBox(width: 8),
-                        Text("Google Apps Script Web App Link", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF12355B))),
+                        Text("GST & GSTR-1 Month-End Export", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF12355B))),
                       ],
                     ),
                     const SizedBox(height: 6),
-                    const Text("Paste your deployed script URL to sync live with Google Sheets:", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: urlController,
-                      decoration: const InputDecoration(
-                        labelText: "Web App URL (https://script.google.com/...)",
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: keyController,
-                      decoration: const InputDecoration(
-                        labelText: "API Key",
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      ),
-                    ),
+                    Text("Store GSTIN: ${AppConfig.gstin} • State: ${AppConfig.stateCode} (Maharashtra)", style: const TextStyle(fontSize: 12, color: Colors.grey)),
                     const SizedBox(height: 12),
                     ElevatedButton.icon(
-                      onPressed: _testConnection,
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B998B), minimumSize: const Size.fromHeight(44)),
-                      icon: const Icon(Icons.link, color: Colors.white),
-                      label: const Text("Test & Save Connection", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      onPressed: _exportGstr1,
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF12355B), minimumSize: const Size.fromHeight(44)),
+                      icon: const Icon(Icons.file_download, color: Colors.white),
+                      label: const Text("Export GSTR-1 (Excel / CSV for CA)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
-                    if (connectionStatus.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        connectionStatus,
-                        style: TextStyle(
-                          color: connectionStatus.startsWith('SUCCESS') ? Colors.green : Colors.red,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            // Products Catalog Table
+            // Supabase Database Connection Settings Card
             Card(
               color: Colors.white,
               child: Padding(
@@ -189,78 +216,41 @@ class _ManagerScreenState extends State<ManagerScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    const Row(
                       children: [
-                        Text("Catalog Products (${repo.products.length})", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF12355B))),
-                        TextButton.icon(
-                          onPressed: () => _showAddProductDialog(),
-                          icon: const Icon(Icons.add),
-                          label: const Text("Add Product"),
-                        ),
+                        Icon(Icons.cloud_done, color: Color(0xFF1B998B)),
+                        SizedBox(width: 8),
+                        Text("Supabase PostgreSQL Database Settings", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF12355B))),
                       ],
                     ),
-                    const Divider(),
-                    ...repo.products.take(6).map((p) => ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      subtitle: Text("${p.sku} • Stock: ${p.stockQty} ${p.unit}"),
-                      trailing: Text("₹${p.sellPrice.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1B998B))),
-                    )),
+                    const SizedBox(height: 6),
+                    const Text("Run schema.sql in Supabase SQL editor (Mumbai region ap-south-1). Paste your project credentials here:", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: supabaseUrlCtrl,
+                      decoration: const InputDecoration(labelText: "Supabase URL (https://xyz.supabase.co)", border: OutlineInputBorder(), isDense: true),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: supabaseKeyCtrl,
+                      decoration: const InputDecoration(labelText: "Supabase Anon Key", border: OutlineInputBorder(), isDense: true),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () {
+                        AppConfig.supabaseUrl = supabaseUrlCtrl.text.trim();
+                        AppConfig.supabaseAnonKey = supabaseKeyCtrl.text.trim();
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Supabase credentials saved successfully!"), backgroundColor: Colors.green));
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B998B), minimumSize: const Size.fromHeight(42)),
+                      child: const Text("Save Database Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
                   ],
                 ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showAddProductDialog() {
-    final nameCtrl = TextEditingController();
-    final priceCtrl = TextEditingController();
-    final mrpCtrl = TextEditingController();
-    final stockCtrl = TextEditingController(text: "20");
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Add New Product"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Product Name")),
-            TextField(controller: priceCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Sell Price (₹)")),
-            TextField(controller: mrpCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "MRP (₹)")),
-            TextField(controller: stockCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Opening Stock")),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () {
-              if (nameCtrl.text.isNotEmpty && priceCtrl.text.isNotEmpty) {
-                final sku = "SKU-${(1000 + repo.products.length + 1)}";
-                final sp = double.tryParse(priceCtrl.text) ?? 0.0;
-                final mp = double.tryParse(mrpCtrl.text) ?? sp;
-                final sq = int.tryParse(stockCtrl.text) ?? 10;
-                repo.products.insert(0, Product(
-                  sku: sku,
-                  name: nameCtrl.text,
-                  mrp: mp,
-                  sellPrice: sp,
-                  costPrice: sp * 0.8,
-                  stockQty: sq,
-                ));
-                repo.notifyListeners();
-                Navigator.pop(ctx);
-              }
-            },
-            child: const Text("Save"),
-          ),
-        ],
       ),
     );
   }

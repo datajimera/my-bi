@@ -2,98 +2,133 @@ class Product {
   final String sku;
   final String name;
   final String categoryId;
+  final String composition; // salt for pharmacy
   final double mrp;
   final double sellPrice;
   final double costPrice;
   final double taxPercent;
-  final String unit;
+  final String hsnCode;
+  final String unit; // PCS, KG, GM, LTR, ML
+  final bool isLoose; // fruits, vegetables
+  final bool trackBatch; // medicine
+  final String drugSchedule; // OTC, H, H1, X
   int stockQty;
   final int reorderLevel;
   final String barcode;
+  final List<Batch> batches;
 
   Product({
     required this.sku,
     required this.name,
     this.categoryId = 'General',
+    this.composition = '',
     required this.mrp,
     required this.sellPrice,
     required this.costPrice,
     this.taxPercent = 0.0,
-    this.unit = 'pcs',
+    this.hsnCode = '',
+    this.unit = 'PCS',
+    this.isLoose = false,
+    this.trackBatch = false,
+    this.drugSchedule = 'OTC',
     required this.stockQty,
     this.reorderLevel = 5,
     this.barcode = '',
+    this.batches = const [],
   });
 
-  factory Product.fromJson(Map<String, dynamic> json) {
-    return Product(
-      sku: json['sku'] ?? '',
-      name: json['name'] ?? '',
-      categoryId: json['category_id'] ?? 'General',
-      mrp: (json['mrp'] as num?)?.toDouble() ?? 0.0,
-      sellPrice: (json['sell_price'] as num?)?.toDouble() ?? 0.0,
-      costPrice: (json['cost_price'] as num?)?.toDouble() ?? 0.0,
-      taxPercent: (json['tax_percent'] as num?)?.toDouble() ?? 0.0,
-      unit: json['unit'] ?? 'pcs',
-      stockQty: (json['stock_qty'] as num?)?.toInt() ?? 0,
-      reorderLevel: (json['reorder_level'] as num?)?.toInt() ?? 5,
-      barcode: json['barcode'] ?? '',
-    );
+  Batch? get nearestValidBatch {
+    if (!trackBatch || batches.isEmpty) return null;
+    final now = DateTime.now();
+    final valid = batches.where((b) => b.expiryDate.isAfter(now) && b.currentStock > 0).toList();
+    if (valid.isEmpty) return null;
+    valid.sort((a, b) => a.expiryDate.compareTo(b.expiryDate)); // FEFO
+    return valid.first;
   }
+}
 
-  Map<String, dynamic> toJson() => {
-    'sku': sku,
-    'name': name,
-    'categoryId': categoryId,
-    'mrp': mrp,
-    'sellPrice': sellPrice,
-    'costPrice': costPrice,
-    'taxPercent': taxPercent,
-    'unit': unit,
-    'stockQty': stockQty,
-    'reorderLevel': reorderLevel,
-    'barcode': barcode,
-  };
+class Batch {
+  final String batchId;
+  final String batchNo;
+  final DateTime expiryDate;
+  final double mrp;
+  double currentStock;
+
+  Batch({
+    required this.batchId,
+    required this.batchNo,
+    required this.expiryDate,
+    required this.mrp,
+    required this.currentStock,
+  });
+
+  bool get isExpired => expiryDate.isBefore(DateTime.now());
+  bool get isNearExpiry {
+    final diff = expiryDate.difference(DateTime.now()).inDays;
+    return diff inRange (0, 90);
+  }
+}
+
+extension IntRange on int {
+  bool inRange(int min, int max) => this >= min && this <= max;
+}
+
+class QuickItem {
+  final String id;
+  final String label;
+  final String color;
+  final Product product;
+  final int sortOrder;
+
+  QuickItem({
+    required this.id,
+    required this.label,
+    required this.color,
+    required this.product,
+    this.sortOrder = 0,
+  });
 }
 
 class BillItem {
   final String sku;
   final String name;
-  int qty;
+  double qty; // Decimal quantities (e.g. 0.750 kg)
+  final String unit;
   final double unitPrice;
   final double taxPercent;
-  final double costPriceSnapshot;
+  final String? batchNo;
+  final DateTime? expiryDate;
+  final String hsnCode;
 
   BillItem({
     required this.sku,
     required this.name,
     required this.qty,
+    this.unit = 'PCS',
     required this.unitPrice,
     this.taxPercent = 0.0,
-    this.costPriceSnapshot = 0.0,
+    this.batchNo,
+    this.expiryDate,
+    this.hsnCode = '',
   });
 
-  double get lineTotal => qty * unitPrice;
-
-  Map<String, dynamic> toJson() => {
-    'sku': sku,
-    'name': name,
-    'qty': qty,
-    'unitPrice': unitPrice,
-    'taxPercent': taxPercent,
-    'costPriceSnapshot': costPriceSnapshot,
-    'lineTotal': lineTotal,
-  };
+  double get lineTotal => (qty * unitPrice * 100).round() / 100.0;
 }
 
 class Bill {
   final String billId;
   final String counterId;
   final String cashierId;
+  String invoiceNo; // Max 16 chars sequential, e.g. S01/2627/000123
   String customerPhone;
+  String customerName;
+  String customerGstin;
+  String patientName;
+  String doctorName;
   double subtotal;
   double discount;
   double taxTotal;
+  double roundOff;
   double grandTotal;
   String paymentMode;
   String paymentStatus;
@@ -111,10 +146,16 @@ class Bill {
     required this.billId,
     required this.counterId,
     required this.cashierId,
+    this.invoiceNo = '',
     this.customerPhone = '',
+    this.customerName = '',
+    this.customerGstin = '',
+    this.patientName = '',
+    this.doctorName = '',
     this.subtotal = 0.0,
     this.discount = 0.0,
     this.taxTotal = 0.0,
+    this.roundOff = 0.0,
     this.grandTotal = 0.0,
     this.paymentMode = 'PENDING',
     this.paymentStatus = 'PENDING',
@@ -131,29 +172,10 @@ class Bill {
 
   void recalculate() {
     subtotal = items.fold(0.0, (sum, i) => sum + i.lineTotal);
-    taxTotal = items.fold(0.0, (sum, i) => sum + (i.lineTotal * (i.taxPercent / 100.0)));
-    grandTotal = (subtotal + taxTotal - discount).clamp(0.0, double.infinity);
+    taxTotal = items.fold(0.0, (sum, i) => sum + (i.lineTotal * (i.taxPercent / (100.0 + i.taxPercent))));
+    final rawTotal = (subtotal - discount).clamp(0.0, double.infinity);
+    final rounded = rawTotal.roundToDouble();
+    roundOff = ((rounded - rawTotal) * 100).round() / 100.0;
+    grandTotal = rounded;
   }
-
-  Map<String, dynamic> toJson() => {
-    'billId': billId,
-    'counterId': counterId,
-    'cashierId': cashierId,
-    'customerPhone': customerPhone,
-    'subtotal': subtotal,
-    'discount': discount,
-    'taxTotal': taxTotal,
-    'grandTotal': grandTotal,
-    'paymentMode': paymentMode,
-    'paymentStatus': paymentStatus,
-    'billStatus': billStatus,
-    'receiptToken': receiptToken,
-    'checkedStatus': checkedStatus,
-    'checkedBy': checkedBy,
-    'checkedGateId': checkedGateId,
-    'checkedAt': checkedAt,
-    'createdAt': createdAt,
-    'paidAt': paidAt,
-    'items': items.map((i) => i.toJson()).toList(),
-  };
 }

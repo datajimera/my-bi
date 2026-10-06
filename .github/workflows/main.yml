@@ -12,10 +12,6 @@ jobs:
       fail-fast: false
       matrix:
         flavor: [counter, manager, checking]
-    # Agar pubspec.yaml kisi folder me hai (jaise smart_billing), to neeche 3 line ka comment hatao:
-    # defaults:
-    #   run:
-    #     working-directory: smart_billing
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +48,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: billing-${{ matrix.flavor }}-apk
-          path: |
-            build/app/outputs/flutter-apk/app-${{ matrix.flavor }}-release.apk
-            smart_billing/build/app/outputs/flutter-apk/app-${{ matrix.flavor }}-release.apk
-          if-no-files-found: warn
+          path: build/app/outputs/flutter-apk/app-${{ matrix.flavor }}-release.apk

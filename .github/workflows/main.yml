@@ -29,7 +29,7 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Configure Flutter & Android Local Properties
+      - name: Configure Flutter & Android Environment
         run: |
           mkdir -p android/app
           FLUTTER_PATH=$(dirname $(dirname $(which flutter)))
@@ -43,6 +43,7 @@ jobs:
 
       - name: Configure Signing Keystore
         run: |
+          mkdir -p android/app
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
             echo "Restoring keystore from GitHub Secret..."
             echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
@@ -50,7 +51,7 @@ jobs:
             KEY_PASS="${{ secrets.KEY_PASSWORD }}"
             KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
           else
-            echo "Generating release build keystore..."
+            echo "Generating self-signed release keystore..."
             keytool -genkey -v -keystore android/app/upload-keystore.jks \
               -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass android -keypass android \
@@ -75,18 +76,20 @@ jobs:
             --build-number=${{ github.run_number }} \
             --android-skip-build-dependency-validation
 
-      - name: Prepare Artifact
+      - name: Locate and Prepare Artifact
         run: |
           mkdir -p dist
-          APK_FOUND=$(find build -name "*${{ matrix.flavor }}*release*.apk" | head -n 1)
-          if [ -z "$APK_FOUND" ]; then
-            APK_FOUND=$(find build -name "*release*.apk" | head -n 1)
+          echo "Searching for generated APK files..."
+          find build -type f -name "*.apk" || true
+          APK_FILE=$(find build -type f -name "*${{ matrix.flavor }}*release*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            APK_FILE=$(find build -type f -name "*release*.apk" | head -n 1)
           fi
-          if [ -z "$APK_FOUND" ]; then
-            APK_FOUND=$(find build -name "*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            APK_FILE=$(find build -type f -name "*.apk" | head -n 1)
           fi
-          echo "Found build APK: $APK_FOUND"
-          cp "$APK_FOUND" "dist/billing-${{ matrix.flavor }}.apk"
+          echo "Selected APK: $APK_FILE"
+          cp "$APK_FILE" "dist/billing-${{ matrix.flavor }}.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4

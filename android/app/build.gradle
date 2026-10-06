@@ -13,7 +13,9 @@ if (!keystorePropertiesFile.exists()) {
     keystorePropertiesFile = file('key.properties')
 }
 if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    try {
+        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    } catch (Exception ignored) {}
 }
 
 android {
@@ -42,20 +44,20 @@ android {
         release {
             def kPath = keystoreProperties['storeFile'] ?: "upload-keystore.jks"
             def kFile = file(kPath)
-            if (!kFile.exists()) {
-                kFile = file("upload-keystore.jks")
-            }
-            if (!kFile.exists()) {
-                kFile = rootProject.file("app/upload-keystore.jks")
-            }
-            if (!kFile.exists()) {
-                kFile = rootProject.file("upload-keystore.jks")
-            }
-            if (kFile.exists()) {
+            if (!kFile.exists()) kFile = file("upload-keystore.jks")
+            if (!kFile.exists()) kFile = rootProject.file("app/upload-keystore.jks")
+            if (!kFile.exists()) kFile = rootProject.file("upload-keystore.jks")
+
+            def sPass = keystoreProperties['storePassword']
+            def kPass = keystoreProperties['keyPassword']
+            def kAlias = keystoreProperties['keyAlias']
+
+            // Only use custom keystore if the file actually exists, is not empty (>300 bytes), and has valid password
+            if (kFile != null && kFile.exists() && kFile.length() > 300 && sPass != null && !sPass.toString().trim().isEmpty()) {
                 storeFile kFile
-                storePassword keystoreProperties['storePassword'] ?: "android"
-                keyAlias keystoreProperties['keyAlias'] ?: "upload"
-                keyPassword keystoreProperties['keyPassword'] ?: "android"
+                storePassword sPass.toString().trim()
+                keyAlias (kAlias != null && !kAlias.toString().trim().isEmpty() ? kAlias.toString().trim() : "upload")
+                keyPassword (kPass != null && !kPass.toString().trim().isEmpty() ? kPass.toString().trim() : sPass.toString().trim())
             }
         }
     }
@@ -82,7 +84,7 @@ android {
 
     buildTypes {
         release {
-            if (signingConfigs.release.storeFile != null && signingConfigs.release.storeFile.exists()) {
+            if (signingConfigs.release.storeFile != null && signingConfigs.release.storeFile.exists() && signingConfigs.release.storeFile.length() > 300) {
                 signingConfig signingConfigs.release
             } else {
                 signingConfig signingConfigs.debug

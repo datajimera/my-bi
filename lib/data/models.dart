@@ -12,8 +12,8 @@ class Product {
   final bool isLoose; // fruits, vegetables
   final bool trackBatch; // medicine
   final String drugSchedule; // OTC, H, H1, X
-  int stockQty;
-  final int reorderLevel;
+  double stockQty;
+  final double reorderLevel;
   final String barcode;
   final List<Batch> batches;
 
@@ -32,7 +32,7 @@ class Product {
     this.trackBatch = false,
     this.drugSchedule = 'OTC',
     required this.stockQty,
-    this.reorderLevel = 5,
+    this.reorderLevel = 5.0,
     this.barcode = '',
     this.batches = const [],
   });
@@ -65,7 +65,7 @@ class Batch {
   bool get isExpired => expiryDate.isBefore(DateTime.now());
   bool get isNearExpiry {
     final diff = expiryDate.difference(DateTime.now()).inDays;
-    return diff inRange (0, 90);
+    return diff >= 0 && diff <= 90;
   }
 }
 

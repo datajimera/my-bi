@@ -2,6 +2,10 @@ class AppConfig {
   static const String appName = "Smart Billing System";
   static const String appVersion = "3.0.0";
 
+  // Google Apps Script / Custom API Backend (for sync if used)
+  static String appsScriptUrl = "";
+  static String apiKey = "SmartBillingSecretKey2026";
+
   // Supabase Backend Credentials (Update v3)
   static String supabaseUrl = "https://your-project-id.supabase.co";
   static String supabaseAnonKey = "your-anon-key-here";

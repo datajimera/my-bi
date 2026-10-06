@@ -349,7 +349,7 @@ class _CheckingScreenState extends State<CheckingScreen> {
                   backgroundColor: Colors.white,
                   foregroundColor: const Color(0xFF12355B),
                   minimumSize: const Size.fromHeight(52),
-                  shape: RoundedCornerShape(12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.qr_code_scanner),
                 label: const Text("Scan Next Customer", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),

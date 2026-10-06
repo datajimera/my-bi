@@ -89,11 +89,11 @@ class StoreRepository extends ChangeNotifier {
     _billCounter++;
 
     final newBill = Bill(
-      billId = billId,
-      counterId = counterId,
-      cashierId = cashierId,
-      createdAt = now.millisecondsSinceEpoch,
-      items = [],
+      billId: billId,
+      counterId: counterId,
+      cashierId: cashierId,
+      createdAt: now.millisecondsSinceEpoch,
+      items: [],
     );
     bills.insert(0, newBill);
     notifyListeners();

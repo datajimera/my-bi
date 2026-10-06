@@ -478,7 +478,7 @@ class _CounterScreenState extends State<CounterScreen> with SingleTickerProvider
                 ),
                 ElevatedButton.icon(
                   onPressed: bill.items.isEmpty ? null : () => _showPaymentDialog(bill),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF12355B), padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12), shape: RoundedCornerShape(10)),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF12355B), padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                   icon: const Icon(Icons.arrow_forward, color: Colors.white),
                   label: const Text("Next / Pay", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                 ),

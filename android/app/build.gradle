@@ -1,0 +1,84 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    namespace "com.smartbilling"
+    compileSdk 34
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    defaultConfig {
+        applicationId "com.smartbilling"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    signingConfigs {
+        release {
+            def kFile = keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            if (kFile != null && kFile.exists()) {
+                storeFile kFile
+                storePassword keystoreProperties['storePassword'] ?: "android"
+                keyAlias keystoreProperties['keyAlias'] ?: "upload"
+                keyPassword keystoreProperties['keyPassword'] ?: "android"
+            }
+        }
+    }
+
+    flavorDimensions "default"
+
+    productFlavors {
+        counter {
+            dimension "default"
+            applicationId "com.smartbilling.counter"
+            manifestPlaceholders = [appName: "Billing Counter"]
+        }
+        manager {
+            dimension "default"
+            applicationId "com.smartbilling.manager"
+            manifestPlaceholders = [appName: "Billing Manager"]
+        }
+        checking {
+            dimension "default"
+            applicationId "com.smartbilling.checking"
+            manifestPlaceholders = [appName: "Exit Checking"]
+        }
+    }
+
+    buildTypes {
+        release {
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
+            minifyEnabled false
+            shrinkResources false
+        }
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source '../..'
+}

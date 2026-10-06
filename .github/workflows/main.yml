@@ -41,45 +41,19 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Configure Signing Keystore
-        run: |
-          mkdir -p android/app
-          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            echo "Restoring keystore from GitHub Secret..."
-            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
-            STORE_PASS="${{ secrets.KEYSTORE_PASSWORD }}"
-            KEY_PASS="${{ secrets.KEY_PASSWORD }}"
-            KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
-          else
-            echo "Generating self-signed release keystore..."
-            keytool -genkey -v -keystore android/app/upload-keystore.jks \
-              -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass android -keypass android \
-              -dname "CN=SmartBilling, OU=Retail, O=Store, L=City, S=State, C=IN"
-            STORE_PASS="android"
-            KEY_PASS="android"
-            KEY_ALIAS="upload"
-          fi
-
-          cat > android/key.properties <<EOF
-          storePassword=${STORE_PASS:-android}
-          keyPassword=${KEY_PASS:-android}
-          keyAlias=${KEY_ALIAS:-upload}
-          storeFile=upload-keystore.jks
-          EOF
-
       - name: Build APK (${{ matrix.flavor }})
         run: |
           flutter build apk --release \
             --flavor ${{ matrix.flavor }} \
             -t lib/main_${{ matrix.flavor }}.dart \
             --build-number=${{ github.run_number }} \
-            --android-skip-build-dependency-validation
+            --android-skip-build-dependency-validation \
+            --verbose
 
       - name: Locate and Prepare Artifact
         run: |
           mkdir -p dist
-          echo "Searching for generated APK files..."
+          echo "=== Searching for generated APK files ==="
           find build -type f -name "*.apk" || true
           APK_FILE=$(find build -type f -name "*${{ matrix.flavor }}*release*.apk" | head -n 1)
           if [ -z "$APK_FILE" ]; then
@@ -89,7 +63,12 @@ jobs:
             APK_FILE=$(find build -type f -name "*.apk" | head -n 1)
           fi
           echo "Selected APK: $APK_FILE"
-          cp "$APK_FILE" "dist/billing-${{ matrix.flavor }}.apk"
+          if [ -n "$APK_FILE" ]; then
+            cp "$APK_FILE" "dist/billing-${{ matrix.flavor }}.apk"
+          else
+            echo "ERROR: No APK was generated!"
+            exit 1
+          fi
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4

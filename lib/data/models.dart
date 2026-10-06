@@ -73,6 +73,60 @@ extension IntRange on int {
   bool inRange(int min, int max) => this >= min && this <= max;
 }
 
+class StaffMember {
+  final String id;
+  String name;
+  String phone;
+  String role; // "Cashier", "Manager", "Exit Guard", "Supervisor"
+  String assignedCounterId;
+  String pin;
+  bool isActive;
+
+  StaffMember({
+    required this.id,
+    required this.name,
+    this.phone = '',
+    this.role = 'Cashier',
+    this.assignedCounterId = 'C01',
+    this.pin = '1234',
+    this.isActive = true,
+  });
+}
+
+class Department {
+  final String id;
+  String name;
+  String code;
+  String type; // "Groceries", "Pharmacy", "Fruits & Veggies", "Dairy", "Cosmetics", "General"
+  String description;
+  bool isActive;
+
+  Department({
+    required this.id,
+    required this.name,
+    required this.code,
+    this.type = 'General',
+    this.description = '',
+    this.isActive = true,
+  });
+}
+
+class Counter {
+  final String id;
+  String name;
+  String departmentId;
+  String assignedCashierId;
+  bool isActive;
+
+  Counter({
+    required this.id,
+    required this.name,
+    this.departmentId = 'DEPT-1',
+    this.assignedCashierId = 'C01',
+    this.isActive = true,
+  });
+}
+
 class QuickItem {
   final String id;
   final String label;

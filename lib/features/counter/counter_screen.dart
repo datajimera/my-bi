@@ -22,6 +22,8 @@ class _CounterScreenState extends State<CounterScreen> with SingleTickerProvider
   final FocusNode barcodeGunFocus = FocusNode();
   late TabController tabController;
   String paymentMode = 'UPI';
+  String selectedCounterId = 'C01';
+  String selectedCashierId = 'C01';
 
   @override
   void initState() {
@@ -49,7 +51,7 @@ class _CounterScreenState extends State<CounterScreen> with SingleTickerProvider
 
   void _startNewBill() {
     setState(() {
-      currentBill = repo.createNewBill("C01", "cashier1");
+      currentBill = repo.createNewBill(selectedCounterId, selectedCashierId);
       phoneController.clear();
       gstinController.clear();
       patientController.clear();
@@ -201,7 +203,7 @@ class _CounterScreenState extends State<CounterScreen> with SingleTickerProvider
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Billing Counter C01', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: Text('Billing Counter $selectedCounterId', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: const Color(0xFF12355B),
       ),
       body: Padding(
@@ -209,6 +211,47 @@ class _CounterScreenState extends State<CounterScreen> with SingleTickerProvider
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Counter & Cashier Quick Bar
+            Card(
+              color: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.point_of_sale, color: Color(0xFF12355B), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: repo.counters.any((c) => c.id == selectedCounterId) ? selectedCounterId : (repo.counters.isNotEmpty ? repo.counters.first.id : null),
+                          isDense: true,
+                          items: repo.counters.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)))).toList(),
+                          onChanged: (val) {
+                            if (val != null) setState(() => selectedCounterId = val);
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.person, color: Color(0xFF1B998B), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: repo.staffMembers.any((s) => s.id == selectedCashierId) ? selectedCashierId : (repo.staffMembers.isNotEmpty ? repo.staffMembers.first.id : null),
+                          isDense: true,
+                          items: repo.staffMembers.where((s) => s.role == 'Cashier' || s.role == 'Manager').map((s) => DropdownMenuItem(value: s.id, child: Text(s.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)))).toList(),
+                          onChanged: (val) {
+                            if (val != null) setState(() => selectedCashierId = val);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(

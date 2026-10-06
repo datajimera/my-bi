@@ -14,27 +14,57 @@ class StoreRepository extends ChangeNotifier {
   List<Bill> bills = [];
   List<Bill> heldBills = [];
   List<Map<String, dynamic>> gateScans = [];
+  List<StaffMember> staffMembers = [];
+  List<Department> departments = [];
+  List<Counter> counters = [];
+
   int _billCounter = 1;
   int _invoiceCounter = 1;
 
   void _initSampleData() {
     final now = DateTime.now();
 
-    // Standard Supermarket Items
-    final p1 = Product(sku: "SKU-1001", name: "Fortune Sunflower Oil 1L", categoryId: "Groceries", mrp: 195.0, sellPrice: 165.0, costPrice: 140.0, taxPercent: 5.0, hsnCode: "1512", unit: "LTR", stockQty: 45, barcode: "8901234567890");
-    final p2 = Product(sku: "SKU-1002", name: "Aashirvaad Chakki Atta 5kg", categoryId: "Groceries", mrp: 270.0, sellPrice: 245.0, costPrice: 210.0, taxPercent: 0.0, hsnCode: "1101", unit: "PCS", stockQty: 30, barcode: "8901234567891");
+    // Departments Setup
+    departments = [
+      Department(id: "DEPT-1", name: "Groceries & Staples", code: "GROC", type: "Groceries", description: "Oils, Atta, Rice, Dal & Packaged foods"),
+      Department(id: "DEPT-2", name: "Pharmacy & Medical", code: "PHARM", type: "Pharmacy", description: "Prescription drugs, OTC, Healthcare"),
+      Department(id: "DEPT-3", name: "Fruits & Vegetables", code: "F&V", type: "Fruits & Veggies", description: "Fresh farm produce sold by weight"),
+      Department(id: "DEPT-4", name: "Dairy & Frozen", code: "DAIRY", type: "Dairy", description: "Milk, Butter, Paneer, Curd, Ice-cream"),
+      Department(id: "DEPT-5", name: "Personal Care & Cosmetics", code: "CARE", type: "Cosmetics", description: "Soaps, Shampoos, Beauty products"),
+    ];
 
-    // Loose Grocery Items (Fruits, Vegetables, Dal)
-    final pLoose1 = Product(sku: "SKU-LOOSE-1", name: "Fresh Aloo (Potatoes)", categoryId: "Groceries", mrp: 35.0, sellPrice: 30.0, costPrice: 20.0, hsnCode: "0701", unit: "KG", isLoose: true, stockQty: 120);
-    final pLoose2 = Product(sku: "SKU-LOOSE-2", name: "Fresh Pyaaz (Onions)", categoryId: "Groceries", mrp: 45.0, sellPrice: 40.0, costPrice: 28.0, hsnCode: "0703", unit: "KG", isLoose: true, stockQty: 90);
-    final pLoose3 = Product(sku: "SKU-LOOSE-3", name: "Madhur Sugar (Cheeni)", categoryId: "Groceries", mrp: 50.0, sellPrice: 44.0, costPrice: 38.0, hsnCode: "1701", unit: "KG", isLoose: true, stockQty: 150);
+    // Staff / Cashiers Setup
+    staffMembers = [
+      StaffMember(id: "C01", name: "Ramesh Kumar", phone: "9876543210", role: "Cashier", assignedCounterId: "C01", pin: "1111"),
+      StaffMember(id: "C02", name: "Priya Sharma", phone: "9876543211", role: "Cashier", assignedCounterId: "C02", pin: "2222"),
+      StaffMember(id: "M01", name: "Sunil Verma", phone: "9876543212", role: "Manager", assignedCounterId: "M01", pin: "9999"),
+      StaffMember(id: "G01", name: "Vikram Singh", phone: "9876543213", role: "Exit Guard", assignedCounterId: "GATE-01", pin: "0000"),
+    ];
+
+    // Counters Setup
+    counters = [
+      Counter(id: "C01", name: "Express Billing Counter 1", departmentId: "DEPT-1", assignedCashierId: "C01"),
+      Counter(id: "C02", name: "Main Retail Counter 2", departmentId: "DEPT-1", assignedCashierId: "C02"),
+      Counter(id: "MED-01", name: "Pharmacy Dispense Counter", departmentId: "DEPT-2", assignedCashierId: "C01"),
+      Counter(id: "GATE-01", name: "Exit Verification Gate 1", departmentId: "DEPT-1", assignedCashierId: "G01"),
+    ];
+
+    // Standard Supermarket Items
+    final p1 = Product(sku: "SKU-1001", name: "Fortune Sunflower Oil 1L", categoryId: "Groceries & Staples", mrp: 195.0, sellPrice: 165.0, costPrice: 140.0, taxPercent: 5.0, hsnCode: "1512", unit: "LTR", stockQty: 45, barcode: "8901234567890");
+    final p2 = Product(sku: "SKU-1002", name: "Aashirvaad Chakki Atta 5kg", categoryId: "Groceries & Staples", mrp: 270.0, sellPrice: 245.0, costPrice: 210.0, taxPercent: 0.0, hsnCode: "1101", unit: "PCS", stockQty: 30, barcode: "8901234567891");
+    final p3 = Product(sku: "SKU-1003", name: "Amul Butter 500g", categoryId: "Dairy & Frozen", mrp: 275.0, sellPrice: 260.0, costPrice: 235.0, taxPercent: 12.0, hsnCode: "0405", unit: "PCS", stockQty: 25, barcode: "8901234567894");
+
+    // Loose Grocery Items (Fruits, Vegetables, Sugar)
+    final pLoose1 = Product(sku: "SKU-LOOSE-1", name: "Fresh Aloo (Potatoes)", categoryId: "Fruits & Vegetables", mrp: 35.0, sellPrice: 30.0, costPrice: 20.0, hsnCode: "0701", unit: "KG", isLoose: true, stockQty: 120);
+    final pLoose2 = Product(sku: "SKU-LOOSE-2", name: "Fresh Pyaaz (Onions)", categoryId: "Fruits & Vegetables", mrp: 45.0, sellPrice: 40.0, costPrice: 28.0, hsnCode: "0703", unit: "KG", isLoose: true, stockQty: 90);
+    final pLoose3 = Product(sku: "SKU-LOOSE-3", name: "Madhur Sugar (Cheeni)", categoryId: "Groceries & Staples", mrp: 50.0, sellPrice: 44.0, costPrice: 38.0, hsnCode: "1701", unit: "KG", isLoose: true, stockQty: 150);
 
     // Medical / Pharmacy Items with Batches & FEFO
     final pMed1 = Product(
       sku: "MED-2001",
       name: "Dolo 650 Tablet",
       composition: "Paracetamol 650mg",
-      categoryId: "Pharmacy",
+      categoryId: "Pharmacy & Medical",
       mrp: 34.0,
       sellPrice: 34.0,
       costPrice: 24.0,
@@ -55,7 +85,7 @@ class StoreRepository extends ChangeNotifier {
       sku: "MED-2002",
       name: "Augmentin 625 Duo",
       composition: "Amoxicillin and Clavulanate Potassium",
-      categoryId: "Pharmacy",
+      categoryId: "Pharmacy & Medical",
       mrp: 205.0,
       sellPrice: 205.0,
       costPrice: 165.0,
@@ -71,15 +101,99 @@ class StoreRepository extends ChangeNotifier {
       ],
     );
 
-    products = [p1, p2, pLoose1, pLoose2, pLoose3, pMed1, pMed2];
+    products = [p1, p2, p3, pLoose1, pLoose2, pLoose3, pMed1, pMed2];
 
-    // Quick Sale Buttons Setup (Section 5.1)
+    // Quick Sale Buttons Setup
     quickItems = [
       QuickItem(id: "Q1", label: "Aloo", color: "#FB8C00", product: pLoose1, sortOrder: 1),
       QuickItem(id: "Q2", label: "Pyaaz", color: "#8E24AA", product: pLoose2, sortOrder: 2),
       QuickItem(id: "Q3", label: "Cheeni", color: "#00ACC1", product: pLoose3, sortOrder: 3),
       QuickItem(id: "Q4", label: "Dolo 650", color: "#43A047", product: pMed1, sortOrder: 4),
     ];
+  }
+
+  // --- STAFF & CASHIER MANAGEMENT ---
+  void addStaffMember(StaffMember staff) {
+    staffMembers.add(staff);
+    notifyListeners();
+  }
+
+  void updateStaffMember(StaffMember staff) {
+    final idx = staffMembers.indexWhere((s) => s.id == staff.id);
+    if (idx != -1) {
+      staffMembers[idx] = staff;
+      notifyListeners();
+    }
+  }
+
+  void deleteStaffMember(String id) {
+    staffMembers.removeWhere((s) => s.id == id);
+    notifyListeners();
+  }
+
+  // --- DEPARTMENT MANAGEMENT ---
+  void addDepartment(Department dept) {
+    departments.add(dept);
+    notifyListeners();
+  }
+
+  void updateDepartment(Department dept) {
+    final idx = departments.indexWhere((d) => d.id == dept.id);
+    if (idx != -1) {
+      departments[idx] = dept;
+      notifyListeners();
+    }
+  }
+
+  void deleteDepartment(String id) {
+    departments.removeWhere((d) => d.id == id);
+    notifyListeners();
+  }
+
+  // --- COUNTER MANAGEMENT ---
+  void addCounter(Counter counter) {
+    counters.add(counter);
+    notifyListeners();
+  }
+
+  void updateCounter(Counter counter) {
+    final idx = counters.indexWhere((c) => c.id == counter.id);
+    if (idx != -1) {
+      counters[idx] = counter;
+      notifyListeners();
+    }
+  }
+
+  void deleteCounter(String id) {
+    counters.removeWhere((c) => c.id == id);
+    notifyListeners();
+  }
+
+  // --- INVENTORY & PRODUCT MANAGEMENT ---
+  void addProduct(Product product) {
+    products.add(product);
+    notifyListeners();
+  }
+
+  void updateProduct(Product product) {
+    final idx = products.indexWhere((p) => p.sku == product.sku);
+    if (idx != -1) {
+      products[idx] = product;
+      notifyListeners();
+    }
+  }
+
+  void deleteProduct(String sku) {
+    products.removeWhere((p) => p.sku == sku);
+    notifyListeners();
+  }
+
+  void adjustStock(String sku, double delta) {
+    final p = products.cast<Product?>().firstWhere((item) => item?.sku == sku, orElse: () => null);
+    if (p != null) {
+      p.stockQty = (p.stockQty + delta).clamp(0.0, 999999.0);
+      notifyListeners();
+    }
   }
 
   Bill createNewBill(String counterId, String cashierId) {

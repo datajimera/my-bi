@@ -1,0 +1,6 @@
+{
+  "name": "Smart Billing",
+  "description": "Multi-counter retail billing, exit guard verification, inventory control, and store management system with QR generation and live reporting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -30,24 +30,11 @@ jobs:
 
       - name: Restore signing key
         run: |
-          mkdir -p android/app
-          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
-            STORE_PASS="${{ secrets.KEYSTORE_PASSWORD }}"
-            KEY_PASS="${{ secrets.KEY_PASSWORD }}"
-            KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
-          else
-            echo "Generating build keystore..."
-            keytool -genkey -v -keystore android/app/upload-keystore.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=SmartBilling, OU=Retail, O=Store, L=City, S=State, C=IN"
-            STORE_PASS="android"
-            KEY_PASS="android"
-            KEY_ALIAS="upload"
-          fi
-
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
           cat > android/key.properties <<EOF
-          storePassword=${STORE_PASS:-android}
-          keyPassword=${KEY_PASS:-android}
-          keyAlias=${KEY_ALIAS:-upload}
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
           storeFile=upload-keystore.jks
           EOF
 
@@ -57,7 +44,6 @@ jobs:
           --flavor ${{ matrix.flavor }}
           -t lib/main_${{ matrix.flavor }}.dart
           --build-number=${{ github.run_number }}
-          --android-skip-build-dependency-validation
 
       - uses: actions/upload-artifact@v4
         with:
